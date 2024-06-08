@@ -8,8 +8,7 @@ import java.util.stream.Collectors;
 
 public class ApiKeyReader implements Reader<String> {
     @Override
-    public String read(String pathToApiKey){
-        String API_KEY_PATH = pathToApiKey;
+    public String read(String API_KEY_PATH){
         String predicateValue = "api";
         try (BufferedReader br = Files.newBufferedReader(Path.of(API_KEY_PATH))) {
             String key = br.lines().filter(x -> x.contains(predicateValue)).collect(Collectors.joining());
