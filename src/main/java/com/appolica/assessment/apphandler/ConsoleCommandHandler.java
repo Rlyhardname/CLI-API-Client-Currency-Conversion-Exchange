@@ -55,7 +55,7 @@ public class ConsoleCommandHandler {
         if (args.length == 1) {
             return parser.parse(args[0]);
         } else if (args.length == 0) {
-            return LocalDate.of(2024, 06, 06);
+            return LocalDate.of(2024, 6, 6);
         }
 
         throw new IllegalArgumentException(TOO_MANY_ARGUMENTS);
