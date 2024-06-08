@@ -15,12 +15,11 @@ public class CustomHttpClient {
     }
 
     private HttpRequest buildRequest(String uri) {
-        HttpRequest request = HttpRequest.newBuilder()
+        return HttpRequest.newBuilder()
                 .uri(URI.create(uri))
                 .header("accept", "application/json")
                 .method("GET", HttpRequest.BodyPublishers.noBody())
                 .build();
-        return request;
     }
 
     private HttpResponse<String> getResponse(HttpRequest request) {
