@@ -6,6 +6,7 @@ import com.appolica.assessment.objectmapper.JsonMapper;
 import java.util.List;
 
 public interface Writer {
-    public void write(JsonMapper jsonMapper, String fileName, List<Container> containers);
-    public void write(JsonMapper jsonMapper, String fileName, Container containers);
+    void write(JsonMapper jsonMapper, String fileName, List<Container> containers);
+
+    void write(JsonMapper jsonMapper, String fileName, Container containers);
 }
