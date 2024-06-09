@@ -42,7 +42,7 @@ public class ConversionContainer implements Container {
     }
 
     public void setBaseCurrency(String baseCurrency) {
-        this.baseCurrency = baseCurrency;
+        this.baseCurrency = baseCurrency.toUpperCase();
     }
 
     public String getTargetCurrency() {
@@ -50,7 +50,7 @@ public class ConversionContainer implements Container {
     }
 
     public void setTargetCurrency(String targetCurrency) {
-        this.targetCurrency = targetCurrency;
+        this.targetCurrency = targetCurrency.toUpperCase();
     }
 
     public double getAmount() {
@@ -84,6 +84,10 @@ public class ConversionContainer implements Container {
                 break;
             }
         }
+    }
+
+    public void calculateConversion(double conversionRate) {
+        setConvertedAmount(amount * conversionRate);
     }
 
     @Override
