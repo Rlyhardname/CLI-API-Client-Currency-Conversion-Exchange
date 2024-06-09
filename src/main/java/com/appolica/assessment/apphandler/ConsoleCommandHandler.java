@@ -1,20 +1,24 @@
 package com.appolica.assessment.apphandler;
 
 import com.appolica.assessment.io.ApiKeyReader;
+import com.appolica.assessment.io.JsonFileWriter;
 import com.appolica.assessment.io.Reader;
+import com.appolica.assessment.io.Writer;
+import com.appolica.assessment.models.dto.HistoricalConversionContainerDTO;
 import com.appolica.assessment.network.CustomHttpClient;
+import com.appolica.assessment.objectmapper.JsonMapper;
+import com.appolica.assessment.objectmapper.JsonObjectMapper;
 import com.appolica.assessment.utils.AmountParser;
 import com.appolica.assessment.parser.LocalDateParser;
 import com.appolica.assessment.parser.Parser;
 import com.appolica.assessment.utils.UrlBuilder;
 import com.appolica.assessment.config.Paths;
 import com.appolica.assessment.models.ConversionContainer;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.net.http.HttpResponse;
 import java.time.LocalDate;
-import java.util.Currency;
-import java.util.Scanner;
-import java.util.Set;
+import java.util.*;
 
 import static com.appolica.assessment.config.CustomURL.API_KEY;
 import static com.appolica.assessment.messages.ValidationMessages.*;
@@ -25,6 +29,8 @@ public class ConsoleCommandHandler {
     private ConversionContainer conversionContainer;
     private Set<Currency> currencySet;
     private CustomHttpClient httpClient;
+    private JsonMapper jsonObjectMapper;
+    private Writer jsonFileWriter;
 
 
     public static void start(String... args) {
@@ -48,6 +54,8 @@ public class ConsoleCommandHandler {
         conversionContainer = new ConversionContainer(parseArgsToLocalDate(args));
         currencySet = Currency.getAvailableCurrencies();
         httpClient = new CustomHttpClient();
+        jsonObjectMapper = new JsonObjectMapper(new ObjectMapper());
+        jsonFileWriter = new JsonFileWriter();
     }
 
     private LocalDate parseArgsToLocalDate(String... args) {
@@ -71,7 +79,13 @@ public class ConsoleCommandHandler {
 
             inputTargetCurrency();
 
-            sendRequest();
+            String url = buildUrl();
+
+            HttpResponse<String> response = sendRequest(url);
+
+            handleResponse(response);
+
+            printResult();
         }
     }
 
@@ -124,15 +138,26 @@ public class ConsoleCommandHandler {
         }
     }
 
-    private void sendRequest() {
-        String uriHistorical = UrlBuilder.buildHistoricalDayConversion(conversionContainer);
-        var response = httpClient.sendRequest(uriHistorical);
-        response.body();
-        printResponse(response);
+    private String buildUrl() {
+        return UrlBuilder.buildHistoricalDayConversion(conversionContainer);
     }
 
-    private void printResponse(HttpResponse<String> response) {
-        System.out.println(response.body());
+    private HttpResponse<String> sendRequest(String url) {
+        return httpClient.sendRequest(url);
+    }
+
+    private void handleResponse(HttpResponse<String> response) {
+        HistoricalConversionContainerDTO jsonResponseDTO = jsonObjectMapper.mapToContainer(response.body(), HistoricalConversionContainerDTO.class);
+        conversionContainer.calculateConversion(jsonResponseDTO, currencySet);
+        String fileName = conversionContainer.getBaseCurrency().toLowerCase() + "_" + conversionContainer.getTargetCurrency().toLowerCase() + "_" + conversionContainer.getLocalDate();
+        jsonFileWriter.write(jsonObjectMapper, fileName, List.of(conversionContainer));
+    }
+
+    private void printResult() {
+        System.out.printf("%.2f %S is %.2f %S", conversionContainer.getAmount(),
+                conversionContainer.getBaseCurrency(),
+                conversionContainer.getConvertedAmount(),
+                conversionContainer.getTargetCurrency());
     }
 
     private void appState(String state) {
