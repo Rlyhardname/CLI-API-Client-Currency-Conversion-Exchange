@@ -4,6 +4,7 @@ import com.appolica.assessment.models.Container;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.LocalDate;
+import java.util.Map;
 
 public class HistoricalConversionContainerDTO implements Container {
     @JsonProperty("date")
@@ -28,6 +29,18 @@ public class HistoricalConversionContainerDTO implements Container {
 
     public ResultsDTO getResults() {
         return resultsDTO;
+    }
+
+    public UnrecognizedFieldsDTO getUnrecognizedFieldStringPair() {
+        var results = resultsDTO.getUnrecognizedFields();
+        if (results.size() != 1) {
+            throw new RuntimeException();
+        }
+
+        for (Map.Entry<String, String> entry : results.entrySet()) {
+            return new UnrecognizedFieldsDTO(entry.getKey(), entry.getValue());
+        }
+        throw new RuntimeException();
     }
 
     public int getMilliseconds() {
