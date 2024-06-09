@@ -1,10 +1,14 @@
 package com.appolica.assessment.models;
 
+import com.appolica.assessment.models.dto.HistoricalConversionContainerDTO;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.Currency;
+import java.util.Map;
+import java.util.Set;
 
 public class ConversionContainer implements Container {
     @JsonProperty("date")
@@ -68,6 +72,18 @@ public class ConversionContainer implements Container {
     private double bankersRoundingToSecondFractional(double amount) {
         BigDecimal bd = new BigDecimal(amount).setScale(2, RoundingMode.HALF_EVEN);
         return bd.doubleValue();
+    }
+
+    public void calculateConversion(HistoricalConversionContainerDTO container, Set<Currency> currencySet) {
+        for (Map.Entry<String, String> entry : container.getResults().getUnrecognizedFields().entrySet()) {
+            if (currencySet.contains(Currency.getInstance(entry.getKey().toUpperCase()))) {
+                double amountToConvert = this.getAmount();
+                double conversionRate = Double.parseDouble(entry.getValue());
+                double convertedAmount = amountToConvert * conversionRate;
+                setConvertedAmount(convertedAmount);
+                break;
+            }
+        }
     }
 
     @Override
