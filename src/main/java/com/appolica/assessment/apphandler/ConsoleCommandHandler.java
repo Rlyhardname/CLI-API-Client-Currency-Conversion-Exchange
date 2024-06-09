@@ -1,10 +1,12 @@
 package com.appolica.assessment.apphandler;
 
+import com.appolica.assessment.exceptions.ResponseCachedException;
 import com.appolica.assessment.io.ApiKeyReader;
 import com.appolica.assessment.io.JsonFileWriter;
 import com.appolica.assessment.io.Reader;
 import com.appolica.assessment.io.Writer;
 import com.appolica.assessment.models.dto.HistoricalConversionContainerDTO;
+import com.appolica.assessment.models.dto.UnrecognizedFieldsDTO;
 import com.appolica.assessment.network.CustomHttpClient;
 import com.appolica.assessment.objectmapper.JsonMapper;
 import com.appolica.assessment.objectmapper.JsonObjectMapper;
@@ -25,6 +27,7 @@ import static com.appolica.assessment.messages.ValidationMessages.*;
 
 public class ConsoleCommandHandler {
     public static ConsoleCommandHandler consoleCommandHandler;
+    private Map<String, Map<String, Double>> cacheMap;
     private Scanner sc;
     private ConversionContainer conversionContainer;
     private Set<Currency> currencySet;
@@ -56,6 +59,7 @@ public class ConsoleCommandHandler {
         httpClient = new CustomHttpClient();
         jsonObjectMapper = new JsonObjectMapper(new ObjectMapper());
         jsonFileWriter = new JsonFileWriter();
+        cacheMap = new HashMap<>();
     }
 
     private LocalDate parseArgsToLocalDate(String... args) {
@@ -81,9 +85,12 @@ public class ConsoleCommandHandler {
 
             String url = buildUrl();
 
-            HttpResponse<String> response = sendRequest(url);
-
-            handleResponse(response);
+            try {
+                HttpResponse<String> response = sendRequest(url);
+                handleResponse(response);
+            } catch (ResponseCachedException e) {
+                calculateCachedDataConversion();
+            }
 
             printResult();
         }
@@ -102,6 +109,8 @@ public class ConsoleCommandHandler {
             }
 
         }
+
+        System.out.printf("%s",System.lineSeparator());
     }
 
     private void inputBaseCurrency() {
@@ -119,6 +128,8 @@ public class ConsoleCommandHandler {
             }
 
         }
+
+        System.out.printf("%s",System.lineSeparator());
     }
 
     private void inputTargetCurrency() {
@@ -136,6 +147,8 @@ public class ConsoleCommandHandler {
             }
 
         }
+
+        System.out.printf("%s",System.lineSeparator());
     }
 
     private String buildUrl() {
@@ -143,21 +156,64 @@ public class ConsoleCommandHandler {
     }
 
     private HttpResponse<String> sendRequest(String url) {
-        return httpClient.sendRequest(url);
+        if (!cacheMap.containsKey(conversionContainer.getBaseCurrency())) {
+            return httpClient.sendRequest(url);
+        }
+
+        if (!cacheMap.get(conversionContainer.getBaseCurrency()).containsKey(conversionContainer.getTargetCurrency())) {
+            return httpClient.sendRequest(url);
+        }
+
+        throw new ResponseCachedException();
     }
 
     private void handleResponse(HttpResponse<String> response) {
         HistoricalConversionContainerDTO jsonResponseDTO = jsonObjectMapper.mapToContainer(response.body(), HistoricalConversionContainerDTO.class);
+        UnrecognizedFieldsDTO dto = jsonResponseDTO.getUnrecognizedFieldStringPair();
+
+        String baseCurrency = jsonResponseDTO.getBaseCurrency();
+        String targetCurrency = dto.getFieldName();
+        Double conversionAmount = Double.parseDouble(dto.getFieldValue());
+
+        if (!cacheMap.containsKey(baseCurrency)) {
+            HashMap<String, Double> targetCurrencyMap = new HashMap<>();
+            cacheMap.put(baseCurrency, targetCurrencyMap);
+        }
+
+        if (!cacheMap.get(baseCurrency).containsKey(targetCurrency)) {
+            cacheMap.get(baseCurrency).put(targetCurrency, conversionAmount);
+        }
+
         conversionContainer.calculateConversion(jsonResponseDTO, currencySet);
+        saveToFile();
+    }
+
+    private void calculateCachedDataConversion() {
+        String baseCurrency = conversionContainer.getBaseCurrency();
+        String targetCurrency = conversionContainer.getTargetCurrency();
+        Double conversionAmount = cacheMap.get(baseCurrency).get(targetCurrency);
+        conversionContainer.calculateConversion(conversionAmount);
+
+        System.out.println("Cached values: " + System.lineSeparator());
+        for (Map.Entry<String, Map<String, Double>> item : cacheMap.entrySet()) {
+            System.out.println("Key: "+ item.getKey() + " Value: " + item.getValue());
+        }
+
+        System.out.printf("%scalculating from cache%s",System.lineSeparator(),System.lineSeparator());
+        saveToFile();
+    }
+
+    private void saveToFile() {
         String fileName = conversionContainer.getBaseCurrency().toLowerCase() + "_" + conversionContainer.getTargetCurrency().toLowerCase() + "_" + conversionContainer.getLocalDate();
         jsonFileWriter.write(jsonObjectMapper, fileName, List.of(conversionContainer));
     }
 
     private void printResult() {
-        System.out.printf("%.2f %S is %.2f %S", conversionContainer.getAmount(),
+        System.out.printf("%.2f %S is %.2f %S%s", conversionContainer.getAmount(),
                 conversionContainer.getBaseCurrency(),
                 conversionContainer.getConvertedAmount(),
-                conversionContainer.getTargetCurrency());
+                conversionContainer.getTargetCurrency(),
+                System.lineSeparator());
     }
 
     private void appState(String state) {
