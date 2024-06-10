@@ -12,7 +12,7 @@ import java.util.Set;
 
 public class ConversionContainer implements Container {
     @JsonProperty("date")
-    private LocalDate localDate;
+    private String date;
     @JsonProperty("amount")
     private double amount;
     @JsonProperty("base_currency")
@@ -26,15 +26,15 @@ public class ConversionContainer implements Container {
     }
 
     public ConversionContainer(LocalDate localDate) {
-        this.localDate = localDate;
+        this.date = localDate.toString();
     }
 
-    public LocalDate getLocalDate() {
-        return localDate;
+    public String getDate() {
+        return date;
     }
 
-    public void setLocalDate(LocalDate localDate) {
-        this.localDate = localDate;
+    public void setDate(LocalDate date) {
+        this.date = date.toString();
     }
 
     public String getBaseCurrency() {
@@ -93,7 +93,7 @@ public class ConversionContainer implements Container {
     @Override
     public String toString() {
         return "ConversionContainer{" +
-                "localDate=" + localDate +
+                "localDate=" + date +
                 ", baseCurrency='" + baseCurrency + '\'' +
                 ", targetCurrency='" + targetCurrency + '\'' +
                 ", amount=" + amount +

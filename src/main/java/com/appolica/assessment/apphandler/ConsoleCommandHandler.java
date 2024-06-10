@@ -204,7 +204,7 @@ public class ConsoleCommandHandler {
     }
 
     private void saveToFile() {
-        String fileName = conversionContainer.getBaseCurrency().toLowerCase() + "_" + conversionContainer.getTargetCurrency().toLowerCase() + "_" + conversionContainer.getLocalDate();
+        String fileName = conversionContainer.getBaseCurrency().toLowerCase() + "_" + conversionContainer.getTargetCurrency().toLowerCase() + "_" + conversionContainer.getDate();
         jsonFileWriter.write(jsonObjectMapper, fileName, List.of(conversionContainer));
     }
 

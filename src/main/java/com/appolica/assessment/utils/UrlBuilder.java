@@ -66,7 +66,7 @@ public class UrlBuilder {
                 .append(HISTORICAL)
                 .append(QUERY_STRINGS)
                 .append("date=")
-                .append(conversionContainer.getLocalDate())
+                .append(conversionContainer.getDate())
                 .append(AND)
                 .append("from=")
                 .append(conversionContainer.getBaseCurrency())
